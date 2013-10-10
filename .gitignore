@@ -3,3 +3,6 @@
 /build/
 /dist/
 *.class
+.project
+.classpath
+/bin/
