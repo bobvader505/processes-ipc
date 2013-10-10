@@ -10,42 +10,78 @@
  *
  * @author Blessing Osakue
  */
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Scanner;
-import java.util.regex.Pattern;
 
 public class Memory {
 
     private static int[] data = new int[2000];
+    private int programBoundary = 0;
 
-    public static void main(String args[]) {
+    public static void main(String args[]) throws FileNotFoundException {
         Memory mem = new Memory();
+        mem.run(args);
 
+    }
+   
+     /**
+     * Validate arguments passed to the program and creates program object
+     *
+     * @param args
+     */
+    public void run(String[] args) throws FileNotFoundException {
+
+        if (args.length > 0) {
+            loadProgram(args[0]);
+        }
+        
         Scanner sc = new Scanner(System.in);
 
         while (sc.hasNextLine()) {
             String str = sc.nextLine();
-//            System.out.println("LN - " + str);
             int address;
+            
+            //its a write instruction
             if (str.matches("(\\d+) (\\d+).*")) {
                 Scanner strSc = new Scanner(str);
                 address = Integer.valueOf(strSc.next());
-                String dataIn = strSc.next();
-                mem.write(address, dataIn);
-//                System.out.println("WRITE[" + address + "] " + dataIn);
+                write(address, strSc.next());
+            //its a read instruction
             }else{
                 address = Integer.valueOf(str);
-                System.out.println("READ[" + address + "] " + mem.read(address));
+                System.out.println(read(address));
             }
         }
-
     }
-
+    
+    
     public int read(int address) {
         return data[address];
     }
-
-    public void write(int address, String dataIn) {
-        dataIn = dataIn.replaceFirst(".*?(\\d+).*", "$1");
-        data[address] = Integer.valueOf(dataIn);
+    
+    public void write(int address, String value) {
+        data[address] = Integer.valueOf(value.replaceFirst(".*?(\\d+).*", "$1"));
+    }
+    
+    protected void loadProgram(String path) throws FileNotFoundException {
+        File program = new File(path);
+        if (!program.exists()) {
+            error("Program does not exist. ["+path+"]");
+        }
+        Scanner scan = new Scanner(program);
+        int i = 0;
+        while (scan.hasNext()) {
+            write(i, scan.nextLine());
+            i++;
+        }
+        scan.close();
+        programBoundary = i;
+        
+    }
+    
+    protected void error(String msg) {
+        System.err.println(msg);
+        System.exit(-1);
     }
 }
