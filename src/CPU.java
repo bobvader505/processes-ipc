@@ -13,18 +13,6 @@ public class CPU {
     
     }
     
-    /**
-     * Determines if a given address is accessible
-     * @param address 
-     */
-    private void isValidAddress(int address) {
-        if (this.userMode) {
-            if (address < 0 || address >= PROGRAM_MEM_BOUNDARY) {
-                this.error("Invalid memory address: " + address);
-            }
-        }
-    }
-    
     private void processInstruction(int instruction, int op){
     	switch(instruction){
     	
@@ -132,11 +120,23 @@ public class CPU {
     }
     
     /**
+     * Determines if a given address is accessible
+     * @param address 
+     */
+    private void isValidAddress(int address) {
+        if (this.userMode) {
+            if (address < 0 || address >= PROGRAM_MEM_BOUNDARY) {
+                this.error("Invalid memory address: " + address);
+            }
+        }
+    }
+    
+    /**
      * Exits the system with an error message
      * @param msg 
      */
     private void error(String msg) {
-        System.out.println(msg);
+        System.err.println(msg);
         System.exit(0);
     }
 }
