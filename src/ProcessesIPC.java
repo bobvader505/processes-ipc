@@ -17,7 +17,7 @@ import java.util.Scanner;
  */
 public class ProcessesIPC {
 
-    private boolean debugMode = true;
+    private boolean debugMode = false;
     private File program;
     private Runtime rt;
     private Process mem;
