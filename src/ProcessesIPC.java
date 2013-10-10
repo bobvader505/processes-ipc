@@ -3,13 +3,11 @@
  * and open the template in the editor.
  */
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.util.Scanner;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 
 /**
  *
@@ -17,18 +15,19 @@ import java.util.Scanner;
  */
 public class ProcessesIPC {
 
-    private boolean debugMode = false;
-    private File program;
-    private Runtime rt;
-    private Process mem;
-    private OutputStream os;
-    private PrintWriter pw;
+    private Runtime runtime;
+    private Process memProcess;
+    final private BufferedWriter out;
+    final private BufferedReader in;
+    final private BufferedReader err;
     private CPU cpu;
+    private boolean debugMode = false;
 
     public static void main(String args[]) {
         try {
-            ProcessesIPC bridge = new ProcessesIPC();
-            int exitVal = bridge.run(args);
+            ProcessesIPC bridge = new ProcessesIPC(args);
+
+            int exitVal = bridge.run();
             System.out.println("Process exited: " + exitVal);
             System.exit(0);
 
@@ -37,88 +36,94 @@ public class ProcessesIPC {
         }
     }
 
-    public int run(String args[]) throws IOException, InterruptedException {
-
+    public ProcessesIPC(String args[]) throws IOException {
         validateArguments(args);
 
-        rt = Runtime.getRuntime();
+        runtime = Runtime.getRuntime();
 
-        mem = rt.exec("java Memory");
-
-        os = mem.getOutputStream();
-
-        pw = new PrintWriter(os);
+        //initialize memory
+        memProcess = runtime.exec("java Memory " + args[0]);
+        debug("READ PROGRAM");
 
         cpu = new CPU();
 
-        initMemory();
+        out = new BufferedWriter(new OutputStreamWriter(memProcess.getOutputStream()));
 
-        //read from mem
-        pw.format("%d\n", 3);
-        pw.flush();
+        in = new BufferedReader(new InputStreamReader(memProcess.getInputStream()));
 
-        pw.format("%d\n", 8);
-        pw.flush();
-
-        //finished writing and reading
-        pw.close();
-
-        InputStream is = mem.getInputStream();
-        int x = 0;
-        while ((x = is.read()) != -1) {
-            System.out.print((char) x);
-        }
-
-        mem.waitFor();
-
-        return mem.exitValue();
-
+        err = new BufferedReader(new InputStreamReader(memProcess.getErrorStream()));
     }
 
-    protected void initMemory() throws FileNotFoundException {
-        //initialize memory with the program
-        Scanner scan = new Scanner(program);
-        debug("READ PROGRAM");
-        String ln;
-        int i = 0;
-        while (scan.hasNext()) {
-            ln = scan.nextLine();
-            //write to mem
-            pw.format("%d %s\n", i, ln);
-            pw.flush();
-            debug("[" + i + "] - " + ln);
-            i++;
-        }
+    public int run() throws IOException, InterruptedException {
+
+        //read & write from mem
+        read(2);
+        read(3);
+        write(2, 79);
+        read(2);
+
+        //finished writing and reading
+
+        out.close();
+        in.close();
+        err.close();
+
+        memProcess.waitFor();
+
+        return memProcess.exitValue();
+
     }
 
     /**
-     * Validate arguments passed to the program and
-     * creates program object
+     * Validate arguments passed to the program and creates program object
      *
      * @param args
      */
-    protected void validateArguments(String[] args) {
-
-        if (debugMode) {
-            debug("ARGUMENTS");
-            for (String s : args) {
-                debug("\t" + s);
-            }
-        }
+    private void validateArguments(String[] args) {
 
         if (args.length < 1) {
             error("IO [path to program]");
         }
 
-        program = new File(args[0]);
-        if (!program.exists()) {
-            error("Program does not exist.");
+        if (args.length > 1) {
+            debugMode = args[args.length - 1].equals("-debug");
         }
 
-        if (args.length == 2) {
-            debugMode = args[1].equals("-debug");
-        }
         debug("PROGRAM VALIDATED");
+    }
+
+    /**
+     * read value from memory
+     *
+     * @param msg
+     * @return int
+     */
+    protected int read(int address) throws IOException {
+        out.write(String.format("%d\n", address));
+        out.flush();
+        String value = in.readLine();
+        if (memProcess.getErrorStream().available() > 0) {
+            error(err.readLine());
+        }
+        debug("READ " + address, value);
+        return Integer.parseInt(value);
+
+    }
+
+    /**
+     * write value to memory at given address
+     *
+     * @param address
+     * @param value
+     * @throws IOException
+     */
+    protected void write(int address, int value) throws IOException {
+        out.write(String.format("%d %d\n", address, value));
+        out.flush();
+        if (memProcess.getErrorStream().available() > 0) {
+            error(err.readLine());
+        }
+        debug("WRITE " + address, value);
     }
 
     /**
@@ -127,13 +132,20 @@ public class ProcessesIPC {
      * @param msg
      */
     protected void error(String msg) {
-        System.out.println(msg);
+        System.err.println(msg);
         System.exit(-1);
     }
 
-    protected void debug(String msg) {
+    private void debug(Object msg) {
         if (debugMode) {
             System.out.println(msg);
         }
+    }
+
+    protected void debug(Object key, Object msg) {
+        if (debugMode) {
+            System.out.printf("[%s] %s\n", key, msg);
+        }
+
     }
 }
