@@ -13,7 +13,7 @@ javac *.java
 Run
 ---------------
 ```
-java ProcessesIPC
+java ProcessesIPC [program path] -debug
 ```
 
 
