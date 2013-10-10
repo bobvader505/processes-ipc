@@ -1,0 +1,10 @@
+8   // Get
+10  // CopyToX
+8   // Get
+11  // CopyToY
+8   // Get
+4   // AddX
+5   // AddY
+9   // Put 1
+1
+50  // End    
