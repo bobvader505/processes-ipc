@@ -14,7 +14,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
-public class Memory {
+public class Memory extends BaseClass {
 
     private static int[] data = new int[2000];
     private int programBoundary = 0;
@@ -24,8 +24,8 @@ public class Memory {
         mem.run(args);
 
     }
-   
-     /**
+
+    /**
      * Validate arguments passed to the program and creates program object
      *
      * @param args
@@ -35,39 +35,42 @@ public class Memory {
         if (args.length > 0) {
             loadProgram(args[0]);
         }
-        
-        Scanner sc = new Scanner(System.in);
 
+        Scanner sc = new Scanner(System.in);
+//        int lineCount = 0;
         while (sc.hasNextLine()) {
             String str = sc.nextLine();
             int address;
-            
             //its a write instruction
+            if(str.isEmpty() || str.startsWith("#")) {
+                continue;
+            }
             if (str.matches("(\\d+) (\\d+).*")) {
                 Scanner strSc = new Scanner(str);
                 address = Integer.valueOf(strSc.next());
                 write(address, strSc.next());
-            //its a read instruction
-            }else{
+                //its a read instruction
+            } else {
                 address = Integer.valueOf(str);
                 System.out.println(read(address));
             }
+//            lineCount++;
         }
+//        debug("Lines Read", lineCount);
     }
-    
-    
+
     public int read(int address) {
         return data[address];
     }
-    
+
     public void write(int address, String value) {
         data[address] = Integer.valueOf(value.replaceFirst(".*?(\\d+).*", "$1"));
     }
-    
+
     protected void loadProgram(String path) throws FileNotFoundException {
         File program = new File(path);
         if (!program.exists()) {
-            error("Program does not exist. ["+path+"]");
+            error("Program does not exist. [" + path + "]");
         }
         Scanner scan = new Scanner(program);
         int i = 0;
@@ -77,9 +80,9 @@ public class Memory {
         }
         scan.close();
         programBoundary = i;
-        
+
     }
-    
+
     protected void error(String msg) {
         System.err.println(msg);
         System.exit(-1);

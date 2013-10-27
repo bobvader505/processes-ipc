@@ -1,10 +1,12 @@
+
+
 /*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -13,15 +15,12 @@ import java.io.OutputStreamWriter;
  *
  * @author iyo
  */
-public class ProcessesIPC {
+public class ProcessesIPC extends BaseClass {
 
     private Runtime runtime;
     private Process memProcess;
-    final private BufferedWriter out;
-    final private BufferedReader in;
-    final private BufferedReader err;
+    private Process cpuProcess;
     private CPU cpu;
-    private boolean debugMode = false;
 
     public static void main(String args[]) {
         try {
@@ -36,37 +35,25 @@ public class ProcessesIPC {
         }
     }
 
-    public ProcessesIPC(String args[]) throws IOException {
+    public ProcessesIPC(String args[]) throws IOException, InterruptedException {
         validateArguments(args);
 
         runtime = Runtime.getRuntime();
 
         //initialize memory
         memProcess = runtime.exec("java Memory " + args[0]);
+//        memProcess = exec(Memory.class);
         debug("READ PROGRAM");
 
-        cpu = new CPU();
-
-        out = new BufferedWriter(new OutputStreamWriter(memProcess.getOutputStream()));
-
-        in = new BufferedReader(new InputStreamReader(memProcess.getInputStream()));
-
-        err = new BufferedReader(new InputStreamReader(memProcess.getErrorStream()));
     }
 
     public int run() throws IOException, InterruptedException {
-
-        //read & write from mem
-        read(2);
-        read(3);
-        write(2, 79);
-        read(2);
+        cpu = new CPU(memProcess.getInputStream(),
+                memProcess.getOutputStream(), memProcess.getErrorStream());
+        cpu.setDebug(this.debugMode);
+        cpu.run();
 
         //finished writing and reading
-
-        out.close();
-        in.close();
-        err.close();
 
         memProcess.waitFor();
 
@@ -86,66 +73,25 @@ public class ProcessesIPC {
         }
 
         if (args.length > 1) {
-            debugMode = args[args.length - 1].equals("-debug");
+            this.setDebug(args[args.length - 1].equals("-debug"));
         }
 
         debug("PROGRAM VALIDATED");
     }
 
-    /**
-     * read value from memory
-     *
-     * @param msg
-     * @return int
-     */
-    protected int read(int address) throws IOException {
-        out.write(String.format("%d\n", address));
-        out.flush();
-        String value = in.readLine();
-        if (memProcess.getErrorStream().available() > 0) {
-            error(err.readLine());
-        }
-        debug("READ " + address, value);
-        return Integer.parseInt(value);
+    public Process exec(Class klass) throws IOException,
+            InterruptedException {
+        String javaHome = System.getProperty("java.home");
+        String javaBin = javaHome
+                + File.separator + "bin"
+                + File.separator + "java";
+        String classpath = System.getProperty("java.class.path");
+        String className = klass.getCanonicalName();
+        debug(classpath);
+        debug(className);
+        ProcessBuilder builder = new ProcessBuilder(
+                javaBin, "-cp", classpath, className);
 
-    }
-
-    /**
-     * write value to memory at given address
-     *
-     * @param address
-     * @param value
-     * @throws IOException
-     */
-    protected void write(int address, int value) throws IOException {
-        out.write(String.format("%d %d\n", address, value));
-        out.flush();
-        if (memProcess.getErrorStream().available() > 0) {
-            error(err.readLine());
-        }
-        debug("WRITE " + address, value);
-    }
-
-    /**
-     * Exits the system with an error message
-     *
-     * @param msg
-     */
-    protected void error(String msg) {
-        System.err.println(msg);
-        System.exit(-1);
-    }
-
-    private void debug(Object msg) {
-        if (debugMode) {
-            System.out.println(msg);
-        }
-    }
-
-    protected void debug(Object key, Object msg) {
-        if (debugMode) {
-            System.out.printf("[%s] %s\n", key, msg);
-        }
-
+        return builder.start();
     }
 }

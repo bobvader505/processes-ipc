@@ -10,13 +10,23 @@ Compile
 ```
 javac *.java
 ```
-Run
+
+Arguments
 ---------------
 ```
-java ProcessesIPC [program path] -debug
+java ProcessesIPC [program_path] [-debug]
 ```
 
-
-Sample Program
+Example
 ---------------
-coming soon...
+```
+cd src
+javac *.java
+java ProcessesIPC ../program3.txt
+```
+
+Program Descriptions
+---------------
+Program 1 - Prints the result of 3 random integers
+Program 2 - Prints the "Hi\n"
+Program 3 - Prints A+ (our grade)
